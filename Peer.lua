@@ -234,7 +234,7 @@ function PacketLayers:__tostring()
 end
 
 function Peer.parse(data)
-    if type(data)=="string" and data:match("^%s*%x%x["]" ) or data:match(" %x%x") then
+    if type(data)=="string" and data:match("^%s*%x%x[%s%x]*$") or data:match(" %x%x") then
         data = hexToBytes(data)
     end
     local reader = Reader.new(data)
