@@ -1,4 +1,4 @@
--- AkunDisco
+-- AkunDisco Present
 -- Peer.lua
 -- Roblox LuaU implementation of a RakNet packet parser/dissector based on the Go `peer` package.
 
@@ -60,11 +60,11 @@ function Reader:readRemaining()
     return rem
 end
 
--- RakNet flags
+-- RakNet flags: drop strict validity check
 function Reader:readRakNetFlags()
     local f = self:readByte()
     return {
-        IsValid = bit32.band(f, 0x80) ~= 0,
+        IsValid = true,  -- assume all packets valid
         IsACK   = bit32.band(f, 0x40) ~= 0,
         IsNAK   = bit32.band(f, 0x20) ~= 0,
     }
@@ -74,7 +74,6 @@ end
 function Reader:DecodeRakNetLayer()
     local layer = {ACKs = {}}
     layer.Flags = self:readRakNetFlags()
-    if not layer.Flags.IsValid then error("layer not a valid RakNet packet") end
 
     if layer.Flags.IsACK or layer.Flags.IsNAK then
         local count = self:readUint16BE()
@@ -111,8 +110,7 @@ end
 
 -- Decode Timestamp layer
 function Reader:DecodeTimestampLayer()
-    local layer = { Timestamp = self:readUint32LE() }
-    return layer
+    return { Timestamp = self:readUint32LE() }
 end
 
 -- Decode SplitPacket layer
@@ -176,9 +174,8 @@ end
 -- Write RakNet flags
 function Writer:writeRakNetFlags(flags)
     local f = 0
-    if flags.IsValid then f = bit32.bor(f, 0x80) end
-    if flags.IsACK   then f = bit32.bor(f, 0x40) end
-    if flags.IsNAK   then f = bit32.bor(f, 0x20) end
+    if flags.IsACK then f = bit32.bor(f, 0x40) end
+    if flags.IsNAK then f = bit32.bor(f, 0x20) end
     self:writeByte(f)
 end
 
@@ -214,90 +211,66 @@ Peer.PacketNames = {
 Peer.OfflineMessageID = {0x00,0xFF,0xFF,0x00,0xFE,0xFE,0xFE,0xFE,0xFD,0xFD,0xFD,0xFD,0x12,0x34,0x56,0x78}
 
 function Peer.IsOfflineMessage(data)
-    if #data < 1 + #Peer.OfflineMessageID then return false end
-    for i, byte in ipairs(Peer.OfflineMessageID) do
-        if string.byte(data, 1 + i) ~= byte then return false end
+    if #data < #Peer.OfflineMessageID + 1 then return false end
+    for i, b in ipairs(Peer.OfflineMessageID) do
+        if string.byte(data, i+1) ~= b then return false end
     end
     return true
 end
 
 local PacketLayers = {}
 PacketLayers.__index = PacketLayers
-
 function PacketLayers.new()
-    return setmetatable({Root={}, RakNet=nil, Reliability=nil, SplitPacket=nil, Timestamp=nil, Main=nil, Error=nil, PacketType=nil, OfflinePayload=nil, UniqueID=nil}, PacketLayers)
+    return setmetatable({Root={}, RakNet=nil, Reliability=nil, SplitPacket=nil, Timestamp=nil, Main=nil, Error=nil, PacketType=nil}, PacketLayers)
 end
 
 function PacketLayers:__tostring()
-    if self.Main and type(self.Main) == "string" then
-        return Peer.PacketNames[self.PacketType] or string.format("Packet 0x%02X", self.PacketType)
-    end
+    if self.Main then return Peer.PacketNames[self.PacketType] or string.format("Packet 0x%02X", self.PacketType) end
     if self.RakNet then
         if self.RakNet.Flags.IsACK then return "ACK" end
         if self.RakNet.Flags.IsNAK then return "NAK" end
-        return Peer.PacketNames[self.PacketType] or string.format("Packet 0x%02X", self.PacketType)
     end
     return "???"
 end
 
 function Peer.parse(data)
-    -- detect hex string input (e.g. "83 06...") and convert
-    if type(data) == "string" and data:match("^%s*%x%x[%s%x]*$") then
+    if type(data)=="string" and data:match("^%s*%x%x["]" ) or data:match(" %x%x") then
         data = hexToBytes(data)
     end
     local reader = Reader.new(data)
     local layers = PacketLayers.new()
     layers.PacketType = reader:readByte()
     local ok, rak = pcall(reader.DecodeRakNetLayer, reader)
-    if not ok then layers.Error = rak return layers end
+    if not ok then layers.Error=rak return layers end
     layers.RakNet = rak
     if rak.Payload then
-        local pr = Reader.new(rak.Payload)
+        local pr=Reader.new(rak.Payload)
         local okRel, rel = pcall(pr.DecodeReliabilityLayer, pr)
-        if okRel then layers.Reliability = rel else layers.Error = rel return layers end
-        if layers.PacketType == 0x1B then
-            local okTs, ts = pcall(pr.DecodeTimestampLayer, pr)
-            if okTs then layers.Timestamp = ts else layers.Error = ts return layers end
-        end
-        local isSplit = pr:readBoolByte()
-        if isSplit then
-            local okSp, sp = pcall(pr.DecodeSplitLayer, pr)
-            if okSp then layers.SplitPacket = sp else layers.Error = sp return layers end
-        end
-        layers.Main = pr:readRemaining()
+        if not okRel then layers.Error=rel return layers end layers.Reliability=rel
+        if layers.PacketType==0x1B then local okTs, ts=pcall(pr.DecodeTimestampLayer,pr) if not okTs then layers.Error=ts return layers end layers.Timestamp=ts end
+        local isSplit=pr:readBoolByte()
+        if isSplit then local okSp, sp=pcall(pr.DecodeSplitLayer,pr) if not okSp then layers.Error=sp return layers end layers.SplitPacket=sp end
+        layers.Main=pr:readRemaining()
     end
     return layers
 end
 
 function Peer.serialize(layers)
-    local w = Writer.new()
+    local w=Writer.new()
     w:writeByte(layers.PacketType)
     w:writeRakNetFlags(layers.RakNet.Flags)
     if layers.RakNet.Flags.IsACK or layers.RakNet.Flags.IsNAK then
         w:writeUint16BE(#layers.RakNet.ACKs)
-        for _, ack in ipairs(layers.RakNet.ACKs) do
-            w:writeBoolByte(ack.Min == ack.Max)
+        for _,ack in ipairs(layers.RakNet.ACKs) do
+            w:writeBoolByte(ack.Min==ack.Max)
             w:writeUint24LE(ack.Min)
-            if ack.Min ~= ack.Max then w:writeUint24LE(ack.Max) end
+            if ack.Min~=ack.Max then w:writeUint24LE(ack.Max) end
         end
     else
         w:writeUint24LE(layers.RakNet.DatagramNumber)
-        if layers.Reliability then
-            local rel = layers.Reliability
-            w:writeByte(bit32.lshift(rel.Reliability,5) + rel.Channel)
-            if rel.SequenceIndex then w:writeUint24LE(rel.SequenceIndex) end
-            if rel.OrderingIndex then w:writeUint24LE(rel.OrderingIndex) end
-            if rel.OrderingChannel then w:writeByte(rel.OrderingChannel) end
-        end
+        if layers.Reliability then local r=layers.Reliability w:writeByte(bit32.lshift(r.Reliability,5)+r.Channel) if r.SequenceIndex then w:writeUint24LE(r.SequenceIndex) end if r.OrderingIndex then w:writeUint24LE(r.OrderingIndex) end if r.OrderingChannel then w:writeByte(r.OrderingChannel) end end
         if layers.Timestamp then w:writeUint32LE(layers.Timestamp.Timestamp) end
-        if layers.SplitPacket then
-            w:writeBoolByte(true)
-            w:writeUint32LE(layers.SplitPacket.SplitCount)
-            w:writeUint16LE(layers.SplitPacket.SplitID)
-            w:writeUint32LE(layers.SplitPacket.SplitIndex)
-        else
-            w:writeBoolByte(false)
-        end
+        if layers.SplitPacket then w:writeBoolByte(true) w:writeUint32LE(layers.SplitPacket.SplitCount) w:writeUint16LE(layers.SplitPacket.SplitID) w:writeUint32LE(layers.SplitPacket.SplitIndex) else w:writeBoolByte(false) end
         w:writeBytes(layers.Main or "")
     end
     return w:getData()
