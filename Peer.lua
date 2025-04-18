@@ -1,4 +1,5 @@
--- AkunDisco
+-- hi
+-- AkunDisco Present
 -- Peer.lua
 -- Optimized Roblox LuaU implementation of a RakNet packet parser/dissector
 
@@ -7,7 +8,6 @@ local bit32 = bit32 -- LuaU bitwise lib
 -- Helper: convert space-separated hex string to raw byte string
 local function hexToBytes(hex)
     local bytes = {}
-    -- Use pattern to capture two hex digits
     for w in hex:gmatch("(%x%x)") do
         bytes[#bytes+1] = string.char(tonumber(w, 16))
     end
@@ -21,7 +21,6 @@ local Reader = {}
 Reader.__index = Reader
 
 function Reader.new(data)
-    -- store as string for fast byte access
     return setmetatable({data = data, pos = 1, len = #data}, Reader)
 end
 
@@ -37,17 +36,23 @@ function Reader:readBoolByte()
 end
 
 function Reader:readUint16BE()
-    local b1, b2 = self:readByte(), self:readByte()
+    local b1 = self:readByte()
+    local b2 = self:readByte()
     return b1 * 256 + b2
 end
 
 function Reader:readUint24LE()
-    local b1, b2, b3 = self:readByte(), self:readByte(), self:readByte()
+    local b1 = self:readByte()
+    local b2 = self:readByte()
+    local b3 = self:readByte()
     return b1 + b2 * 256 + b3 * 65536
 end
 
 function Reader:readUint32LE()
-    local b1, b2, b3, b4 = self:readByte(), self:readByte(), self:readByte(), self:readByte()
+    local b1 = self:readByte()
+    local b2 = self:readByte()
+    local b3 = self:readByte()
+    local b4 = self:readByte()
     return b1 + b2 * 256 + b3 * 65536 + b4 * 16777216
 end
 
@@ -89,11 +94,15 @@ function Reader:DecodeReliabilityLayer()
     local byte = self:readByte()
     layer.Reliability = bit32.rshift(byte, 5)
     layer.Channel     = bit32.band(byte, 0x1F)
-    if layer.Reliability >= 1 then layer.SequenceIndex = self:readUint24LE() end
+    if layer.Reliability >= 1 then
+        layer.SequenceIndex = self:readUint24LE()
+    end
     if layer.Reliability == 1 or layer.Reliability == 3 or layer.Reliability == 4 then
         layer.OrderingIndex = self:readUint24LE()
     end
-    if layer.Reliability == 3 then layer.OrderingChannel = self:readByte() end
+    if layer.Reliability == 3 then
+        layer.OrderingChannel = self:readByte()
+    end
     return layer
 end
 
@@ -128,19 +137,22 @@ function Writer:writeBoolByte(b)
 end
 
 function Writer:writeUint16BE(n)
-    self:writeByte((n >> 8) & 0xFF)
-    self:writeByte(n & 0xFF)
+    -- big-endian: high byte first
+    self:writeByte(bit32.rshift(n, 8))
+    self:writeByte(bit32.band(n, 0xFF))
 end
 
 function Writer:writeUint24LE(n)
-    self:writeByte(n & 0xFF)
-    self:writeByte((n >> 8) & 0xFF)
-    self:writeByte((n >> 16) & 0xFF)
+    -- little-endian: low byte first
+    self:writeByte(bit32.band(n, 0xFF))
+    self:writeByte(bit32.band(bit32.rshift(n, 8), 0xFF))
+    self:writeByte(bit32.band(bit32.rshift(n, 16), 0xFF))
 end
 
 function Writer:writeUint32LE(n)
+    -- 3 bytes low, then high byte
     self:writeUint24LE(n)
-    self:writeByte((n >> 24) & 0xFF)
+    self:writeByte(bit32.band(bit32.rshift(n, 24), 0xFF))
 end
 
 function Writer:writeBytes(str)
@@ -155,7 +167,6 @@ function Writer:writeRakNetFlags(flags)
 end
 
 function Writer:getData()
-    -- faster single concat
     return table.concat(self.buf)
 end
 
@@ -175,19 +186,17 @@ Peer.PacketNames = {
     [0x15] = "ID_DISCONNECTION_NOTIFICATION", [0x18] = "ID_INVALID_PASSWORD",
     [0x1B] = "ID_TIMESTAMP", [0x1C] = "ID_UNCONNECTED_PONG",
     [0x83] = "ID_DATA", [0x85] = "ID_PHYSICS",
-    -- ... add as needed
 }
 
 Peer.OfflineMessageID = {0x00,0xFF,0xFF,0x00,0xFE,0xFE,0xFE,0xFE,
                          0xFD,0xFD,0xFD,0xFD,0x12,0x34,0x56,0x78}
 
 function Peer.parse(data)
-    -- hex string auto-detect
     if type(data)=="string" and data:match("^[%x ]+$") then
         data = hexToBytes(data)
     end
     local r = Reader.new(data)
-    local layers = {Error=nil}
+    local layers = {Error = nil}
     layers.PacketType = r:readByte()
     local ok, rak = pcall(r.DecodeRakNetLayer, r)
     if not ok then layers.Error = rak; return layers end
@@ -195,14 +204,17 @@ function Peer.parse(data)
     if rak.Payload then
         local pr = Reader.new(rak.Payload)
         local okRel, rel = pcall(pr.DecodeReliabilityLayer, pr)
-        if okRel then layers.Reliability = rel else layers.Error=rel; return layers end
+        if not okRel then layers.Error = rel; return layers end
+        layers.Reliability = rel
         if layers.PacketType == 0x1B then
             local okTs, ts = pcall(pr.DecodeTimestampLayer, pr)
-            if okTs then layers.Timestamp = ts else layers.Error=ts; return layers end
+            if not okTs then layers.Error = ts; return layers end
+            layers.Timestamp = ts
         end
         if pr:readBoolByte() then
             local okSp, sp = pcall(pr.DecodeSplitLayer, pr)
-            if okSp then layers.SplitPacket = sp else layers.Error=sp; return layers end
+            if not okSp then layers.Error = sp; return layers end
+            layers.SplitPacket = sp
         end
         layers.Main = pr:readRemaining()
     end
@@ -216,15 +228,17 @@ function Peer.serialize(layers)
     if layers.RakNet.Flags.IsACK or layers.RakNet.Flags.IsNAK then
         w:writeUint16BE(#layers.RakNet.ACKs)
         for _, ack in ipairs(layers.RakNet.ACKs) do
-            w:writeBoolByte(ack.Min==ack.Max)
+            w:writeBoolByte(ack.Min == ack.Max)
             w:writeUint24LE(ack.Min)
-            if ack.Min~=ack.Max then w:writeUint24LE(ack.Max) end
+            if ack.Min ~= ack.Max then
+                w:writeUint24LE(ack.Max)
+            end
         end
     else
         w:writeUint24LE(layers.RakNet.DatagramNumber)
         if layers.Reliability then
             local r = layers.Reliability
-            w:writeByte(bit32.lshift(r.Reliability,5) + r.Channel)
+            w:writeByte(bit32.lshift(r.Reliability, 5) + r.Channel)
             if r.SequenceIndex then w:writeUint24LE(r.SequenceIndex) end
             if r.OrderingIndex then w:writeUint24LE(r.OrderingIndex) end
             if r.OrderingChannel then w:writeByte(r.OrderingChannel) end
