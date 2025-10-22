@@ -1323,7 +1323,7 @@ function G:Intialize(HubTitle, ImageHub, HubColor)
 	Main.UIStroke.Color = Color3.fromRGB(((Main.BackgroundColor3.R*255)*1.2)/1.4, ((Main.BackgroundColor3.G*255)*1.2)/1.4, ((Main.BackgroundColor3.B*255)*1.2)/1.4)
 	AutoColorChildren(Main)
 	HandleColor(ClosedF, Main, 1.3)
-	HandleColor(Closed, ClosedF, 1.3)
+	HandleColor(Closed, Main, 1.3)
 
 	TitleHub.Text = tostring(HubTitle)
 	LogoHub.Image = tostring(ImageHub)
