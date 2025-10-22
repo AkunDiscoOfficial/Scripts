@@ -1735,7 +1735,7 @@ function G:Intialize(HubTitle, ImageHub, HubColor)
 	end
 
 	function C:Save()
-		writefile(getgenv().Global.ConfigName, HttpService:JSONEncode(Saves))
+		writefile(getgenv().Global.ConfigName, HttpService:JSONEncode(SaveTable))
 	end
 
 	function C:AddTag(Title)
