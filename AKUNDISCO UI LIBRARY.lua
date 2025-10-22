@@ -1734,6 +1734,9 @@ function G:Intialize(HubTitle, ImageHub, HubColor)
 		Section.Visible = true
 	end
 
+	function C:Save()
+		writefile(getgenv().Global.ConfigName, HttpService:JSONEncode(Saves))
+	end
 
 	function C:AddTag(Title)
 		local Title = Title or 'V1'
