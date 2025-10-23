@@ -1,11 +1,15 @@
 local G2L = {};
+cloneref = cloneref or function(A) return A end
+RunService = cloneref(game:GetService('RunService'))
+gethui = gethui or function(A) if RunService:IsStudio() then return game.Players.LocalPlayer:WaitForChild('PlayerGui') else return game:GetService('CoreGui') end; end
+get_hidden_gui = get_hidden_gui or function(A) if RunService:IsStudio() then return game.Players.LocalPlayer:WaitForChild('PlayerGui') else return game:GetService('CoreGui') end; end
 
 -- StarterGui.AkunDiscoUILib
 G2L["1"] = cloneref(Instance.new('ScreenGui'));
 if get_hidden_gui or gethui then
-    local hiddenUI = get_hidden_gui or gethui
-    G2L['1'].Name = 'JAWDADAWKKJAHJKZ'
-    G2L['1'].Parent = hiddenUI()
+	local hiddenUI = get_hidden_gui or gethui
+	G2L['1'].Name = 'JAWDADAWKKJAHJKZ'
+	G2L['1'].Parent = hiddenUI()
 end
 G2L["1"]["IgnoreGuiInset"] = true;
 G2L["1"]["ScreenInsets"] = Enum.ScreenInsets.DeviceSafeInsets;
@@ -1394,6 +1398,7 @@ local NotifyF = Gui.NotifyFrame
 local Closed = ClosedF.Closed
 local Close = Main['X']
 local Min = Main['-']
+Main:SetAttribute('CLOSED', false)
 
 table.insert(IC, Min.Activated:Connect(function()
 	ClickSound:Play()
@@ -1780,8 +1785,45 @@ function G:Intialize(HubTitle, ImageHub, HubColor)
 			Cloned:Destroy()
 		end)
 	end
+	
+	function C:ConnectHubClosed(Function)
+		Main:GetAttributeChangedSignal('CLOSED'):Connect(Function)
+	end
+	
+	function C:Open(Bool)
+		if Bool == false then
+			Main.Visible = false
+			ClosedF.Visible = true
+			Main:SetAttribute('CLOSED', true)
+		elseif Bool == true then
+			Main.Visible = true
+			ClosedF.Visible = false
+			Main:SetAttribute('CLOSED', false)
+		end
+	end
+	
 	return C
 end
+
+table.insert(IC, UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+	if gameProcessedEvent then
+		return
+	end
+	if input.UserInputType == Enum.UserInputType.Keyboard then
+		if input.KeyCode == Enum.KeyCode.P then
+			if Main.Visible == true then
+				Main.Visible = false
+				ClosedF.Visible = true
+				Main:SetAttribute('CLOSED', true)
+			elseif Main.Visible == false then
+				Main.Visible = true
+				ClosedF.Visible = false
+				Main:SetAttribute('CLOSED', false)
+			end
+		end
+	end
+end))
+
 
 if
 	UserInputService.TouchEnabled
