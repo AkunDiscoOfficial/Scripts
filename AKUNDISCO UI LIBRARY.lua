@@ -1681,9 +1681,7 @@ function G:Intialize(HubTitle, ImageHub, HubColor)
 						Cloned.Toggle.BackgroundColor3 = Color3.fromRGB(255, 0, 76)
 					end
 					Function(SBool)
-					if SaveTable[SaveName] then
-						SaveTable[SaveName] = SBool
-					end
+					SaveTable[SaveName] = SBool
 				end))
 			end
 			return T
