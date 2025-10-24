@@ -1481,7 +1481,6 @@ end
 function G:Intialize(HubTitle, ImageHub, HubColor)
 	local C = {}
 	local SaveTable = {}
-	local Saves = {}
 	local HttpService = cloneref(game:GetService('HttpService'))
 	if not pcall(function()
 			readfile(getgenv().Global.ConfigName)
