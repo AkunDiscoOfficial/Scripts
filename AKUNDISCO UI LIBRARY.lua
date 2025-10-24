@@ -1708,7 +1708,7 @@ function G:Intialize(HubTitle, ImageHub, HubColor)
 			HandleColor(Cloned.Input, Section, 1.3)
 			Cloned.Visible = true
 			function T:Handle(Function)
-				if SaveTable[SaveName] then
+				if SaveTable[SaveName] and SaveTable[SaveName] ~= '' then
 					Cloned.Input.Text = SaveTable[SaveName]
 					Function(Cloned.Input.Text)
 				end
