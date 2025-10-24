@@ -1659,7 +1659,7 @@ function G:Intialize(HubTitle, ImageHub, HubColor)
 			Cloned.Title.Text = tostring(Title)
 			Cloned.Logo.Image = tostring(Image)
 			Cloned.Parent = Section
-			if SaveTable[SaveName] then
+			if SaveTable[SaveName] ~= nil then
 				SBool = SaveTable[SaveName]
 			end
 			if SBool == true then
@@ -1671,8 +1671,8 @@ function G:Intialize(HubTitle, ImageHub, HubColor)
 			end
 			Cloned.Visible = true
 			function T:Handle(Function)
-				if SaveTable[SaveName] then
-					Function(Bool)
+				if SaveTable[SaveName] ~= nil then
+					Function(SBool)
 				end
 				table.insert(IC, Cloned.Toggle.Activated:Connect(function()
 					ClickSound:Play()
