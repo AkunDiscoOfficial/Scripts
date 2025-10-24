@@ -1018,6 +1018,7 @@ G2L["71"]["BackgroundColor3"] = Color3.fromRGB(173, 0, 4);
 G2L["71"]["Name"] = [[SectionFrame]];
 G2L["71"]["VerticalScrollBarPosition"] = Enum.VerticalScrollBarPosition.Left;
 G2L["71"]["AutomaticCanvasSize"] = Enum.AutomaticSize.Y;
+G2L["71"]["AutomaticSize"] = Enum.AutomaticSize.None
 G2L["71"]["Size"] = UDim2.new(0, 447, 0, 278);
 G2L["71"]["ScrollBarImageColor3"] = Color3.fromRGB(101, 18, 18);
 G2L["71"]["Position"] = UDim2.new(0.21672, 0, 0.19613, 0);
