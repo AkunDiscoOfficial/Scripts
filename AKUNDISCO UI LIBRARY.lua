@@ -1411,7 +1411,7 @@ table.insert(IC, Closed.Activated:Connect(function()
 	ClosedF.Visible = false
 	Main.Visible = true
 end))
-
+local DESTROYED = false
 table.insert(IC, Close.Activated:Connect(function()
 	ClickSound:Play()
 	for i, v in pairs(IC) do
@@ -1785,10 +1785,17 @@ function G:Intialize(HubTitle, ImageHub, HubColor)
 		end)
 	end
 	
+	function C:Destroyed(Function)
+		task.spawn(function()
+			repeat task.wait() until DESTROYED == true
+			Function()
+		end)
+	end
+
 	function C:ConnectHubClosed(Function)
 		Main:GetAttributeChangedSignal('CLOSED'):Connect(Function)
 	end
-	
+
 	function C:Open(Bool)
 		if Bool == false then
 			Main.Visible = false
@@ -1800,7 +1807,7 @@ function G:Intialize(HubTitle, ImageHub, HubColor)
 			Main:SetAttribute('CLOSED', false)
 		end
 	end
-	
+
 	return C
 end
 
