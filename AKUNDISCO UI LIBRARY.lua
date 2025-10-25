@@ -1577,13 +1577,18 @@ function G:Intialize(HubTitle, ImageHub, HubColor)
 		end
 
 		function A:AddHint(Title)
+			local T = {}
 			local Title = Title or 'Hint Text'
 			local Cloned = Storage.SectionHint:Clone()
 			HandleColor(Cloned, Section, 1.3)
 			Cloned.Title.Text = tostring(Title)
 			Cloned.Visible = true
 			Cloned.Parent = Section
-			return Cloned.Title
+			function T:Edit(NewTitle)
+				local NewTitle = NewTitle or 'New Title'
+				Cloned.Title.Text = tostring(NewTitle)
+			end
+			return T
 		end
 
 		function A:AddDropdown(Title, Image, Tables)
