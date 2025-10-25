@@ -1411,7 +1411,7 @@ table.insert(IC, Closed.Activated:Connect(function()
 	ClosedF.Visible = false
 	Main.Visible = true
 end))
-local DESTROYED = false
+
 table.insert(IC, Close.Activated:Connect(function()
 	ClickSound:Play()
 	for i, v in pairs(IC) do
@@ -1790,7 +1790,7 @@ function G:Intialize(HubTitle, ImageHub, HubColor)
 
 	function C:Destroyed(Function)
 		local DestroyCon
-		DestroyCon = Gui.Destroyed:Connect(function()
+		DestroyCon = Gui.Destroying:Connect(function()
 			Function()
 			DestroyCon:Disconnect()
 		end)
