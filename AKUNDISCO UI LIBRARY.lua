@@ -1498,6 +1498,9 @@ function G:Intialize(HubTitle, ImageHub, HubColor)
 		writefile(getgenv().Global.ConfigName, HttpService:JSONEncode(Saves))
 		getgenv().Global.Resetted = true
 	end
+	if not getgenv().Global['Resetted'] then
+		getgenv().Global.Resetted = false
+	end
 	SaveTable = Saves
 	local HubTitle = HubTitle or 'Akundisco UI Library Hub'
 	local ImageHub = ImageHub or 'rbxassetid://113474562563978'
