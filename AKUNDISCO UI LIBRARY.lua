@@ -8,7 +8,7 @@ get_hidden_gui = get_hidden_gui or function(A) if RunService:IsStudio() then ret
 G2L["1"] = cloneref(Instance.new('ScreenGui'));
 if get_hidden_gui or gethui then
 	local hiddenUI = get_hidden_gui or gethui
-	G2L['1'].Name = 'JAWDADAWKKJAHJKZ'
+	G2L['1'].Name = RunService.ClientGitHash
 	G2L['1'].Parent = hiddenUI()
 end
 G2L["1"]["IgnoreGuiInset"] = true;
