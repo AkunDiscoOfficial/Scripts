@@ -1735,13 +1735,13 @@ function G:Intialize(HubTitle, ImageHub, HubColor)
 		return A, Section
 	end
 
-	function C:SetSection(Section)
+	function C:SetSection(SectionTarget)
 		for i, v in pairs(Main:GetChildren()) do
-			if v.Name == 'SectionFrame' and v ~= Section then
+			if v.Name == 'SectionFrame' and v ~= SectionTarget then
 				v.Visible = false
 			end
 		end
-		Section.Visible = true
+		SectionTarget.Visible = true
 	end
 
 	function C:Save()
