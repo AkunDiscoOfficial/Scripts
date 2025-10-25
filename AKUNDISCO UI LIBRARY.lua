@@ -1494,7 +1494,7 @@ function G:Intialize(HubTitle, ImageHub, HubColor)
 				Saves[i] = v
 			end
 		end
-		SaveTable['Version'] = getgenv().Global.TodayVersion
+		Saves['Version'] = getgenv().Global.TodayVersion
 		writefile(getgenv().Global.ConfigName, HttpService:JSONEncode(Saves))
 		getgenv().Global.Resetted = true
 	end
@@ -1787,11 +1787,12 @@ function G:Intialize(HubTitle, ImageHub, HubColor)
 			Cloned:Destroy()
 		end)
 	end
-	
+
 	function C:Destroyed(Function)
-		task.spawn(function()
-			repeat task.wait() until DESTROYED == true
+		local DestroyCon
+		DestroyCon = Gui.Destroyed:Connect(function()
 			Function()
+			DestroyCon:Disconnect()
 		end)
 	end
 
